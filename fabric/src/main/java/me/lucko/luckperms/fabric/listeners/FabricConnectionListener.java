@@ -26,7 +26,6 @@
 package me.lucko.luckperms.fabric.listeners;
 
 import com.mojang.authlib.GameProfile;
-
 import me.lucko.luckperms.common.config.ConfigKeys;
 import me.lucko.luckperms.common.locale.Message;
 import me.lucko.luckperms.common.locale.TranslationManager;
@@ -36,17 +35,16 @@ import me.lucko.luckperms.fabric.FabricSenderFactory;
 import me.lucko.luckperms.fabric.LPFabricPlugin;
 import me.lucko.luckperms.fabric.mixin.ServerLoginNetworkHandlerAccessor;
 import me.lucko.luckperms.fabric.model.MixinUser;
-
 import net.fabricmc.fabric.api.networking.v1.PacketSender;
 import net.fabricmc.fabric.api.networking.v1.ServerLoginConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerLoginNetworking.LoginSynchronizer;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.kyori.adventure.text.Component;
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerLoginNetworkHandler;
 import net.minecraft.server.network.ServerPlayNetworkHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.util.Uuids;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -69,9 +67,9 @@ public class FabricConnectionListener extends AbstractConnectionListener {
         /* Called when the player first attempts a connection with the server. */
 
         // Get their profile from the net handler - it should have been initialised by now.
+        String username = ((ServerLoginNetworkHandlerAccessor) netHandler).getProfileName();
         GameProfile profile = ((ServerLoginNetworkHandlerAccessor) netHandler).getGameProfile();
-        UUID uniqueId = PlayerEntity.getUuidFromProfile(profile);
-        String username = profile.getName();
+        UUID uniqueId = profile == null ? Uuids.getOfflinePlayerUuid(username) : profile.getId();
 
         if (this.plugin.getConfiguration().get(ConfigKeys.DEBUG_LOGINS)) {
             this.plugin.getLogger().info("Processing pre-login (sync phase) for " + uniqueId + " - " + username);

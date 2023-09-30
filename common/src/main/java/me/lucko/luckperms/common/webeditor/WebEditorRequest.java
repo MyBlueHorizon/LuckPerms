@@ -27,7 +27,6 @@ package me.lucko.luckperms.common.webeditor;
 
 import com.google.common.base.Preconditions;
 import com.google.gson.JsonObject;
-
 import me.lucko.luckperms.common.context.ImmutableContextSetImpl;
 import me.lucko.luckperms.common.context.serializer.ContextSetJsonSerializer;
 import me.lucko.luckperms.common.model.Group;
@@ -45,7 +44,6 @@ import me.lucko.luckperms.common.util.gson.GsonProvider;
 import me.lucko.luckperms.common.util.gson.JArray;
 import me.lucko.luckperms.common.util.gson.JObject;
 import me.lucko.luckperms.common.verbose.event.CheckOrigin;
-
 import net.luckperms.api.context.ImmutableContextSet;
 import net.luckperms.api.node.Node;
 import net.luckperms.api.query.QueryOptions;
@@ -240,7 +238,7 @@ public class WebEditorRequest {
         users.values().stream()
                 .sorted(Comparator
                         // sort firstly by the users relative weight (depends on the groups they inherit)
-                        .<User>comparingInt(u -> u.getCachedData().getMetaData(QueryOptions.nonContextual()).getWeight(CheckOrigin.INTERNAL)).reversed()
+                        .<User>comparingInt(u -> u.getCachedData().getMetaData(QueryOptions.nonContextual()).getWeight(CheckOrigin.INTERNAL).intResult()).reversed()
                         // then, prioritise users we actually have a username for
                         .thenComparing(u -> u.getUsername().isPresent(), ((Comparator<Boolean>) Boolean::compare).reversed())
                         // then sort according to their username

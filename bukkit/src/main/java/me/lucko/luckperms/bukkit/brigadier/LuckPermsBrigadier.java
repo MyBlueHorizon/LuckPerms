@@ -26,13 +26,11 @@
 package me.lucko.luckperms.bukkit.brigadier;
 
 import com.mojang.brigadier.tree.LiteralCommandNode;
-
 import me.lucko.commodore.Commodore;
 import me.lucko.commodore.CommodoreProvider;
-import me.lucko.commodore.file.CommodoreFileFormat;
+import me.lucko.commodore.file.CommodoreFileReader;
 import me.lucko.luckperms.bukkit.LPBukkitPlugin;
 import me.lucko.luckperms.common.sender.Sender;
-
 import org.bukkit.command.Command;
 
 import java.io.InputStream;
@@ -50,7 +48,7 @@ public final class LuckPermsBrigadier {
                 throw new Exception("Brigadier command data missing from jar");
             }
 
-            LiteralCommandNode<?> commandNode = CommodoreFileFormat.parse(is);
+            LiteralCommandNode<?> commandNode = CommodoreFileReader.INSTANCE.parse(is);
             commodore.register(pluginCommand, commandNode, player -> {
                 Sender playerAsSender = plugin.getSenderFactory().wrap(player);
                 return plugin.getCommandManager().hasPermissionForAny(playerAsSender);

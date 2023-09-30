@@ -25,6 +25,7 @@
 
 package me.lucko.luckperms.fabric.mixin;
 
+import me.lucko.luckperms.common.cacheddata.type.MetaCache;
 import me.lucko.luckperms.common.cacheddata.type.PermissionCache;
 import me.lucko.luckperms.common.context.manager.QueryOptionsCache;
 import me.lucko.luckperms.common.locale.TranslationManager;
@@ -33,13 +34,11 @@ import me.lucko.luckperms.common.verbose.event.CheckOrigin;
 import me.lucko.luckperms.fabric.context.FabricContextManager;
 import me.lucko.luckperms.fabric.event.PlayerChangeWorldCallback;
 import me.lucko.luckperms.fabric.model.MixinUser;
-
 import net.luckperms.api.query.QueryOptions;
 import net.luckperms.api.util.Tristate;
-import net.minecraft.network.packet.c2s.play.ClientSettingsC2SPacket;
+import net.minecraft.network.packet.c2s.common.SyncedClientOptions;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
-
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -70,7 +69,7 @@ public abstract class ServerPlayerEntityMixin implements MixinUser {
     private Locale luckperms$locale;
 
     // Used by PlayerChangeWorldCallback hook below.
-    @Shadow public abstract ServerWorld getWorld();
+    @Shadow public abstract ServerWorld getServerWorld();
 
     @Override
     public User getLuckPermsUser() {
@@ -136,6 +135,36 @@ public abstract class ServerPlayerEntityMixin implements MixinUser {
         return data.checkPermission(permission, CheckOrigin.PLATFORM_API_HAS_PERMISSION).result();
     }
 
+    @Override
+    public String getOption(String key) {
+        if (key == null) {
+            throw new NullPointerException("key");
+        }
+        if (this.luckperms$user == null || this.luckperms$queryOptions == null) {
+            // "fake" players will have our mixin, but won't have been initialised.
+            return null;
+        }
+        return getOption(key, this.luckperms$queryOptions.getQueryOptions());
+    }
+
+    @Override
+    public String getOption(String key, QueryOptions queryOptions) {
+        if (key == null) {
+            throw new NullPointerException("key");
+        }
+        if (queryOptions == null) {
+            throw new NullPointerException("queryOptions");
+        }
+
+        final User user = this.luckperms$user;
+        if (user == null || this.luckperms$queryOptions == null) {
+            // "fake" players will have our mixin, but won't have been initialised.
+            return null;
+        }
+
+        MetaCache cache = user.getCachedData().getMetaData(queryOptions);
+        return cache.getMetaOrChatMetaValue(key, CheckOrigin.PLATFORM_API);
+    }
 
     @Inject(at = @At("TAIL"), method = "copyFrom")
     private void luckperms_copyFrom(ServerPlayerEntity oldPlayer, boolean alive, CallbackInfo ci) {
@@ -146,14 +175,14 @@ public abstract class ServerPlayerEntityMixin implements MixinUser {
         this.luckperms$locale = oldMixin.getCachedLocale();
     }
 
-    @Inject(at = @At("HEAD"), method = "setClientSettings")
-    private void luckperms_setClientSettings(ClientSettingsC2SPacket information, CallbackInfo ci) {
+    @Inject(at = @At("HEAD"), method = "setClientOptions")
+    private void luckperms_setClientOptions(SyncedClientOptions information, CallbackInfo ci) {
         String language = information.language();
         this.luckperms$locale = TranslationManager.parseLocale(language);
     }
 
     @Inject(at = @At("TAIL"), method = "worldChanged")
     private void luckperms_onChangeDimension(ServerWorld targetWorld, CallbackInfo ci) {
-        PlayerChangeWorldCallback.EVENT.invoker().onChangeWorld(this.getWorld(), targetWorld, (ServerPlayerEntity) (Object) this);
+        PlayerChangeWorldCallback.EVENT.invoker().onChangeWorld(this.getServerWorld(), targetWorld, (ServerPlayerEntity) (Object) this);
     }
 }

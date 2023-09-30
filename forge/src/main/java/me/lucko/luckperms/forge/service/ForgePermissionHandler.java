@@ -33,7 +33,6 @@ import me.lucko.luckperms.common.verbose.event.CheckOrigin;
 import me.lucko.luckperms.forge.LPForgeBootstrap;
 import me.lucko.luckperms.forge.LPForgePlugin;
 import me.lucko.luckperms.forge.capabilities.UserCapabilityImpl;
-
 import net.luckperms.api.context.ImmutableContextSet;
 import net.luckperms.api.query.QueryMode;
 import net.luckperms.api.query.QueryOptions;
@@ -43,6 +42,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.server.permission.handler.IPermissionHandler;
 import net.minecraftforge.server.permission.nodes.PermissionDynamicContext;
 import net.minecraftforge.server.permission.nodes.PermissionNode;
+import net.minecraftforge.server.permission.nodes.PermissionType;
 import net.minecraftforge.server.permission.nodes.PermissionTypes;
 
 import java.util.Collection;
@@ -111,28 +111,37 @@ public class ForgePermissionHandler implements IPermissionHandler {
     @SuppressWarnings("unchecked")
     private static <T> T getPermissionValue(User user, QueryOptions queryOptions, PermissionNode<T> node, PermissionDynamicContext<?>... context) {
         queryOptions = appendContextToQueryOptions(queryOptions, context);
+        String key = node.getNodeName();
+        PermissionType<T> type = node.getType();
 
-        if (node.getType() == PermissionTypes.BOOLEAN) {
+        // permission check
+        if (type == PermissionTypes.BOOLEAN) {
             PermissionCache cache = user.getCachedData().getPermissionData(queryOptions);
-            Tristate value = cache.checkPermission(node.getNodeName(), CheckOrigin.PLATFORM_API_HAS_PERMISSION).result();
+            Tristate value = cache.checkPermission(key, CheckOrigin.PLATFORM_API_HAS_PERMISSION).result();
             if (value != Tristate.UNDEFINED) {
                 return (T) (Boolean) value.asBoolean();
             }
         }
 
-        if (node.getType() == PermissionTypes.INTEGER) {
+        // meta lookup
+        if (node.getType() == PermissionTypes.STRING) {
             MetaCache cache = user.getCachedData().getMetaData(queryOptions);
-            Integer value = cache.getMetaValue(node.getNodeName(), Integer::parseInt).orElse(null);
+            String value = cache.getMetaOrChatMetaValue(node.getNodeName(), CheckOrigin.PLATFORM_API);
             if (value != null) {
                 return (T) value;
             }
         }
 
-        if (node.getType() == PermissionTypes.STRING) {
+        // meta lookup (integer)
+        if (node.getType() == PermissionTypes.INTEGER) {
             MetaCache cache = user.getCachedData().getMetaData(queryOptions);
-            String value = cache.getMetaValue(node.getNodeName());
+            String value = cache.getMetaOrChatMetaValue(node.getNodeName(), CheckOrigin.PLATFORM_API);
             if (value != null) {
-                return (T) value;
+                try {
+                    return (T) Integer.valueOf(Integer.parseInt(value));
+                } catch (IllegalArgumentException e) {
+                    // ignore
+                }
             }
         }
 

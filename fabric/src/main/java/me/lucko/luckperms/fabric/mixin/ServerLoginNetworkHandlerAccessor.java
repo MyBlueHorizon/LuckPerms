@@ -26,9 +26,7 @@
 package me.lucko.luckperms.fabric.mixin;
 
 import com.mojang.authlib.GameProfile;
-
 import net.minecraft.server.network.ServerLoginNetworkHandler;
-
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
@@ -38,6 +36,9 @@ import org.spongepowered.asm.mixin.gen.Accessor;
  */
 @Mixin(ServerLoginNetworkHandler.class)
 public interface ServerLoginNetworkHandlerAccessor {
+
+    @Accessor("profileName")
+    String getProfileName();
 
     @Accessor("profile")
     GameProfile getGameProfile();
